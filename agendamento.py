@@ -145,7 +145,102 @@ def deletarAgendamento(treeview):
         messagebox.showwarning("Nenhum Item Selecionado", "Por favor, selecione um agendamento para excluir.")
 
 
+def editarAgendamento(treeview):
+    # Obter item selecionado na Treeview
+    item_selecionado = treeview.selection()
+    
+    if item_selecionado:
+        # Obter valores do item selecionado
+        valores_item = treeview.item(item_selecionado, 'values')
+        # Obter o ID do item selecionado
+        id_agendamento = valores_item[0]
+        
+        # Consultar o banco de dados para obter os detalhes do agendamento selecionado
+        cursor.execute("SELECT * FROM visitantes WHERE id=?", (id_agendamento,))
+        agendamento = cursor.fetchone()
+        
+        # Criar uma nova janela para editar o agendamento
+        janela_editar_agendamento = tk.Toplevel(root)
+        janela_editar_agendamento.title("Editar Agendamento")
+        janela_editar_agendamento.resizable(False, False)
+        
+        # Labels e Entradas para os dados de agendamento
+        tk.Label(janela_editar_agendamento, text="Nome:").grid(row=0, column=0, padx=5, pady=5)
+        tk.Label(janela_editar_agendamento, text="Telefone:").grid(row=1, column=0, padx=5, pady=5)
+        tk.Label(janela_editar_agendamento, text="CPF:").grid(row=2, column=0, padx=5, pady=5)
+        tk.Label(janela_editar_agendamento, text="Email:").grid(row=3, column=0, padx=5, pady=5)
+        tk.Label(janela_editar_agendamento, text="Idade:").grid(row=4, column=0, padx=5, pady=5)
+        tk.Label(janela_editar_agendamento, text="Sexo:").grid(row=5, column=0, padx=5, pady=5)
+        tk.Label(janela_editar_agendamento, text="Data Agendamento:").grid(row=6, column=0, padx=5, pady=5)
+        tk.Label(janela_editar_agendamento, text="Horário:").grid(row=7, column=0, padx=5, pady=5)
+        tk.Label(janela_editar_agendamento, text="Especialidade:").grid(row=8, column=0, padx=5, pady=5)
+        
+        global entry_nome, entry_telefone, entry_cpf, entry_email, entry_idade, entry_sexo, entry_data_agendamento , entry_horario, entry_especialidade
+        
+        entry_nome = tk.Entry(janela_editar_agendamento)
+        entry_nome.grid(row=0, column=1, padx=5, pady=5)
+        entry_nome.insert(0, agendamento[1])  # Preencher com o nome atual
+        
+        entry_telefone = tk.Entry(janela_editar_agendamento)
+        entry_telefone.grid(row=1, column=1, padx=5, pady=5)
+        entry_telefone.insert(0, agendamento[2])  # Preencher com o telefone atual
+        
+        entry_cpf = tk.Entry(janela_editar_agendamento)
+        entry_cpf.grid(row=2, column=1, padx=5, pady=5)
+        entry_cpf.insert(0, agendamento[3])  # Preencher com o CPF atual
+        
+        entry_email = tk.Entry(janela_editar_agendamento)
+        entry_email.grid(row=3, column=1, padx=5, pady=5)
+        entry_email.insert(0, agendamento[4])  # Preencher com o email atual
+        
+        entry_idade = tk.Entry(janela_editar_agendamento)
+        entry_idade.grid(row=4, column=1, padx=5, pady=5)
+        entry_idade.insert(0, agendamento[5])  # Preencher com a idade atual
+        
+        entry_sexo = tk.Entry(janela_editar_agendamento)
+        entry_sexo.grid(row=5, column=1, padx=5, pady=5)
+        entry_sexo.insert(0, agendamento[6])  # Preencher com o sexo atual
+        
+        entry_data_agendamento = tk.Entry(janela_editar_agendamento)
+        entry_data_agendamento.grid(row=6, column=1, padx=5, pady=5)
+        entry_data_agendamento.insert(0, agendamento[7])  # Preencher com a data de agendamento atual
+        
+        entry_horario = tk.Entry(janela_editar_agendamento)
+        entry_horario.grid(row=7, column=1, padx=5, pady=5)
+        entry_horario.insert(0, agendamento[8])  # Preencher com o horário atual
+        
+        entry_especialidade = tk.Entry(janela_editar_agendamento)
+        entry_especialidade.grid(row=8, column=1, padx=5, pady=5)
+        entry_especialidade.insert(0, agendamento[9])  # Preencher com a especialidade atual
 
+        # Botão para salvar as alterações
+        button_salvar = tk.Button(janela_editar_agendamento, text="Salvar", command=lambda: salvarEdicaoAgendamento(janela_editar_agendamento, treeview, id_agendamento))
+        button_salvar.grid(row=9, column=0, columnspan=2, padx=5, pady=10)
+        
+    else:
+        messagebox.showwarning("Nenhum Item Selecionado", "Por favor, selecione um agendamento para editar.")
+
+def salvarEdicaoAgendamento(janela_editar_agendamento, treeview, id_agendamento):
+    # Obtenção dos dados inseridos
+    nome = entry_nome.get()
+    telefone = entry_telefone.get()
+    cpf = entry_cpf.get()
+    email = entry_email.get()
+    idade = entry_idade.get()
+    sexo = entry_sexo.get()
+    data_agendamento = entry_data_agendamento.get()
+    horario = entry_horario.get()
+    especialidade = entry_especialidade.get()
+    
+    # Validar os dados inseridos
+    # (o mesmo código de validação pode ser usado aqui)
+    
+    # Atualizar os dados no banco de dados
+    cursor.execute("UPDATE visitantes SET nome=?, telefone=?, cpf=?, email=?, idade=?, sexo=?, data_agendamento=?, horario=?, especialidade=? WHERE id=?",
+                   (nome, telefone, cpf, email, idade, sexo, data_agendamento, horario, especialidade, id_agendamento))
+    conn.commit()
+    listarAgendamentos(treeview)
+    messagebox.showinfo("Edição Concluída", "O agendamento foi editado com sucesso.")
 
 def ordenar_coluna(treeview, coluna, reverse=False):
     dados = [(treeview.set(item, coluna), item) for item in treeview.get_children('')]
@@ -217,6 +312,10 @@ button_incluir.pack(pady=10)
 # Botão para abrir a janela de exclusão
 button_deletar = tk.Button(root, text="Deletar Agendamento", command=lambda: deletarAgendamento(treeview))
 button_deletar.pack(pady=10)
+
+# Botão para abrir a janela de exclusão
+button_editar = tk.Button(root, text="Editar Agendamento", command=lambda: editarAgendamento(treeview))
+button_editar.pack(pady=10)
 
 listarAgendamentos(treeview)
 
