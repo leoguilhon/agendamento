@@ -1,6 +1,6 @@
 import sqlite3
+import re
 import tkinter as tk
-from utils import *
 from tkinter import ttk, messagebox
 
 #Estabelece a conexão com o banco de dados (se não existir, será criado)
@@ -10,7 +10,7 @@ conn = sqlite3.connect('consultorio.db')
 cursor = conn.cursor()
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS visitantes
-            (id INTEGER PRIMARY KEY, nome VARCHAR(50), telefone VARCHAR(11), cpf VARCHAR(11), email VARCHAR(50), idade INTEGER, sexo VARCHAR(50), data_agendamento VARCHAR(10), especialidade VARCHAR(50))''')
+            (id INTEGER PRIMARY KEY, nome VARCHAR(50), telefone VARCHAR(11), cpf VARCHAR(11), email VARCHAR(50), idade INTEGER, sexo VARCHAR(50), data_agendamento VARCHAR(10), horario VARCHAR(5), especialidade VARCHAR(50))''')
 
 
 def salvarAgendamento(janela_agendamento, treeview):
@@ -22,6 +22,7 @@ def salvarAgendamento(janela_agendamento, treeview):
     idade = entry_idade.get()
     sexo = entry_sexo.get()
     data_agendamento = entry_data_agendamento.get()
+    horario = entry_horario.get()
     especialidade = entry_especialidade.get()
     
     # Validar os dados inseridos
@@ -49,12 +50,21 @@ def salvarAgendamento(janela_agendamento, treeview):
         messagebox.showerror("Erro", "Data de agendamento inválida")
         janela_agendamento.focus_force()
         return
-
+    if not horario or not re.match(r'^\d{2}:\d{2}$', horario):
+        messagebox.showerror("Erro", "Horário inválido")
+        janela_agendamento.focus_force()
+        return
+    
+    # Verificar se há conflito de agendamento
+    if verificarConflitoAgendamento(data_agendamento, horario):
+        messagebox.showerror("Erro", "Já existe um agendamento para este horário e data.")
+        janela_agendamento.focus_force()
+        return
     # Inserir dados
-    cursor.execute("INSERT INTO visitantes (nome, telefone, cpf, email, idade, sexo, data_agendamento, especialidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                   (nome, telefone, cpf, email, idade, sexo, data_agendamento, especialidade))
+    cursor.execute("INSERT INTO visitantes (nome, telefone, cpf, email, idade, sexo, data_agendamento, horario, especialidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   (nome, telefone, cpf, email, idade, sexo, data_agendamento, horario, especialidade))
     conn.commit()
-    print(f'Agendamento de {nome} para {especialidade} no dia {data_agendamento} realizado com sucesso.')
+    print(f'Agendamento de {nome} para {especialidade} no dia {data_agendamento} às {horario} realizado com sucesso.')
     listarAgendamentos(treeview)
     janela_agendamento.destroy()
     
@@ -72,9 +82,10 @@ def criarJanelaIncluirAgendamento(treeview):
     tk.Label(janela_agendamento, text="Idade:").grid(row=4, column=0, padx=5, pady=5)
     tk.Label(janela_agendamento, text="Sexo:").grid(row=5, column=0, padx=5, pady=5)
     tk.Label(janela_agendamento, text="Data Agendamento:").grid(row=6, column=0, padx=5, pady=5)
-    tk.Label(janela_agendamento, text="Especialidade:").grid(row=7, column=0, padx=5, pady=5)
+    tk.Label(janela_agendamento, text="Horário:").grid(row=7, column=0, padx=5, pady=5)
+    tk.Label(janela_agendamento, text="Especialidade:").grid(row=8, column=0, padx=5, pady=5)
 
-    global entry_nome, entry_telefone, entry_cpf, entry_email, entry_idade, entry_sexo, entry_data_agendamento, entry_especialidade
+    global entry_nome, entry_telefone, entry_cpf, entry_email, entry_idade, entry_sexo, entry_data_agendamento , entry_horario, entry_especialidade
 
     entry_nome = tk.Entry(janela_agendamento)
     entry_nome.grid(row=0, column=1, padx=5, pady=5)
@@ -90,12 +101,14 @@ def criarJanelaIncluirAgendamento(treeview):
     entry_sexo.grid(row=5, column=1, padx=5, pady=5)
     entry_data_agendamento = tk.Entry(janela_agendamento)
     entry_data_agendamento.grid(row=6, column=1, padx=5, pady=5)
+    entry_horario = tk.Entry(janela_agendamento)
+    entry_horario.grid(row=7, column=1, padx=5, pady=5)
     entry_especialidade = tk.Entry(janela_agendamento)
-    entry_especialidade.grid(row=7, column=1, padx=5, pady=5)
+    entry_especialidade.grid(row=8, column=1, padx=5, pady=5)
 
     # Botão para salvar o agendamento
     button_salvar = tk.Button(janela_agendamento, text="Salvar", command=lambda: salvarAgendamento(janela_agendamento, treeview))
-    button_salvar.grid(row=8, column=0, columnspan=2, padx=5, pady=10)
+    button_salvar.grid(row=9, column=0, columnspan=2, padx=5, pady=10)
 
 def listarAgendamentos(treeview):
     # Limpar dados anteriores da Treeview
@@ -149,16 +162,21 @@ def ordenar_coluna(treeview, coluna, reverse=False):
     # Alterna a direção da ordenação para a próxima vez
     treeview.heading(coluna, command=lambda: ordenar_coluna(treeview, coluna, not reverse))
 
+def verificarConflitoAgendamento(data_agendamento, horario):
+    cursor.execute("SELECT * FROM visitantes WHERE data_agendamento = ? AND horario = ?", (data_agendamento, horario))
+    agendamentos = cursor.fetchall()
+    return len(agendamentos) > 0
+
 # Interface
 
 root = tk.Tk()
 root.title("Agendamentos")
 
 # Define as dimensões da janela
-root.geometry("800x600")
+root.geometry("1000x800")
 
 # Widget Treeview para exibir os agendamentos
-treeview = ttk.Treeview(root, columns=("ID", "Nome", "Telefone", "CPF", "Email", "Idade", "Sexo", "Data Agendamento", "Especialidade"), show="headings")
+treeview = ttk.Treeview(root, columns=("ID", "Nome", "Telefone", "CPF", "Email", "Idade", "Sexo", "Data Agendamento", "Horário", "Especialidade"), show="headings")
 treeview.pack(fill=tk.BOTH, expand=True)
 
 treeview.heading("ID", text="ID", anchor=tk.CENTER, command=lambda: ordenar_coluna(treeview, "ID"))
@@ -184,6 +202,9 @@ treeview.column("Sexo", width=50, anchor=tk.CENTER)
 
 treeview.heading("Data Agendamento", text="Data Agendamento", anchor=tk.CENTER, command=lambda: ordenar_coluna(treeview, "Data Agendamento"))
 treeview.column("Data Agendamento", width=110, anchor=tk.CENTER)
+
+treeview.heading("Horário", text="Horário", anchor=tk.CENTER, command=lambda: ordenar_coluna(treeview, "Horário"))
+treeview.column("Horário", width=110, anchor=tk.CENTER)
 
 treeview.heading("Especialidade", text="Especialidade", anchor=tk.CENTER, command=lambda: ordenar_coluna(treeview, "Especialidade"))
 treeview.column("Especialidade", width=100, anchor=tk.CENTER)
