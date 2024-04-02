@@ -241,6 +241,7 @@ def salvarEdicaoAgendamento(janela_editar_agendamento, treeview, id_agendamento)
     conn.commit()
     listarAgendamentos(treeview)
     messagebox.showinfo("Edição Concluída", "O agendamento foi editado com sucesso.")
+    janela_editar_agendamento.destroy()
 
 def ordenar_coluna(treeview, coluna, reverse=False):
     dados = [(treeview.set(item, coluna), item) for item in treeview.get_children('')]
